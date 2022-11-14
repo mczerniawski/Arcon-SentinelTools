@@ -1,0 +1,38 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "workspace":  {
+                                         "type":  "String"
+                                     }
+                   },
+    "resources":  [
+                      {
+                          "type":  "Microsoft.OperationalInsights/workspaces/savedSearches",
+                          "apiVersion":  "2020-08-01",
+                          "name":  "[concat(parameters(\u0027workspace\u0027), \u0027/AADMFABypass\u0027)]",
+                          "location":  "[resourceGroup().location]",
+                          "properties":  {
+                                             "eTag":  "*",
+                                             "displayName":  "Sign-ins originating from an unknown network (not in Named Location), that don\u0027t require MFA [DCSecurityOperations]",
+                                             "category":  "Hunting Queries",
+                                             "query":  "\n// Sign-ins targeted by Conditional Access, originating from an unknown network (not in Named Location), that don\u0027t require MFA. The purpose is to find sign-ins originating from untrusted networks that still don\u0027t require MFA [DCSecurityOperations].\nSigninLogs\n| where TimeGenerated \u003e ago(30d)\n| where AuthenticationRequirement != \"multiFactorAuthentication\"\n| where tostring(NetworkLocationDetails) == \"[]\"\n| where ResultType == 0\n| where ConditionalAccessStatus == \"success\"\n| where todynamic(AuthenticationDetails)[0].authenticationMethod != \"Windows Hello for Business\"\n| where AppDisplayName != \"Microsoft Intune Company Portal\"\n| where AppDisplayName != \"Microsoft Intune Web Company Portal\"\n| where AppDisplayName != \"Microsoft Office Web Apps Service\"\n| where AppDisplayName != \"Microsoft Account Controls V2\"\n| where ResourceDisplayName != \"Microsoft Intune Enrollment\"\n| project UserPrincipalName, UserId, AppDisplayName, ResourceDisplayName, NetworkLocationDetails, AuthenticationRequirement\n| summarize count() by UserPrincipalName, AppDisplayName, ResourceDisplayName, AuthenticationRequirement\n| sort by UserPrincipalName asc, count_ desc\n",
+                                             "version":  1,
+                                             "tags":  [
+                                                          {
+                                                              "name":  "description",
+                                                              "value":  "Sign-ins targeted by Conditional Access (past 30 days), originating from an unknown network (not in Named Location), that don\u0027t require MFA. The purpose is to find sign-ins originating from untrusted networks that still don\u0027t require MFA."
+                                                          },
+                                                          {
+                                                              "name":  "tactics",
+                                                              "value":  "InitialAccess"
+                                                          },
+                                                          {
+                                                              "name":  "relevantTechniques",
+                                                              "value":  "T1078.004"
+                                                          }
+                                                      ]
+                                         }
+                      }
+                  ]
+}
